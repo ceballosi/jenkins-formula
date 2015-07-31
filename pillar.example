@@ -1,4 +1,9 @@
 jenkins:
+  server_name: ci.example.com
   lookup:
+    port: 80
     home: /usr/local/jenkins
-    server_name: ci.example.com
+    user: jenkins
+    group: www-data
+    pkgs:
+      - jenkins

@@ -25,7 +25,4 @@ Pillar customizations:
 .. code-block:: yaml
 
     jenkins:
-      port: 8090
-      home: /opt/jenkins
-      user: jenkins
-      group: www-data
+      server_name: ci.example.com
