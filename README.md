@@ -96,7 +96,11 @@ jenkins:
     user: jenkins
     group: www-data
     server_name: ci.example.com
+    jenkins_user: jenkins
+    jenkins_pw: password
+    install_default_plugins: True # to install all default plugins recommended by Jenkins
 ```
+OBS: jenkins_user and jenkins_pw will be the user and password to access Jenkins using jenkins-cli. They must be created after the installation of Jenkins or exist in LDAP.
 
 Contributing to This Project
 

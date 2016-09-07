@@ -29,7 +29,40 @@ get_new_jenkins_plugins_registry:
     - require:
       - file: get_new_jenkins_plugins_registry
 
-{% for plugin in jenkins.plugins.installed %}
+{% set plugins = jenkins.plugins.default + jenkins.plugins.installed if jenkins.install_default_plugins else jenkins.plugins.installed %}
+{% for plugin in plugins %}
+{% if plugin == 'ldap' and jenkins.ldap_host is defined and jenkins.ldap_root_dn is defined and jenkins.ldap_user is defined and jenkins.ldap_secret is defined %}
+enable_ldap_security:
+  file.blockreplace:
+    - name: {{ jenkins.home }}/config.xml
+    - marker_start: '</authorizationStrategy>'
+    - marker_end: '<disableRememberMe>false</disableRememberMe>'
+    - content: >
+                <securityRealm class="hudson.security.LDAPSecurityRealm" plugin="ldap@1.12">
+                  <server>ldap://{{ jenkins.ldap_host }}</server>
+                  <rootDN>{{ jenkins.ldap_root_dn }}</rootDN>
+                  <inhibitInferRootDN>false</inhibitInferRootDN>
+                  <userSearchBase></userSearchBase>
+                  <userSearch>uid={0}</userSearch>
+                  <groupMembershipStrategy class="jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy">
+                    {% if jenkins.ldap_groups is defined and jenkins.ldap_groups is iterable %}
+                    <filter>(|{% for group in jenkins.ldap_groups %}({{ group }}){% endfor %})</filter>
+                    {% endif %}
+                  </groupMembershipStrategy>
+                  <managerDN>{{ jenkins.ldap_user }}</managerDN>
+                  <managerPasswordSecret>{{ jenkins.ldap_secret }}</managerPasswordSecret>
+                  <disableMailAddressResolver>false</disableMailAddressResolver>
+                  <displayNameAttributeName>displayname</displayNameAttributeName>
+                  <mailAddressAttributeName>mail</mailAddressAttributeName>
+                  <userIdStrategy class="jenkins.model.IdStrategy$CaseInsensitive"/>
+                  <groupIdStrategy class="jenkins.model.IdStrategy$CaseInsensitive"/>
+                </securityRealm>
+    - show_changes: True
+    - backup: .bak
+    - require:
+      - cmd: get_new_jenkins_plugins_registry
+{% endif %}
+
 jenkins_install_plugin_{{ plugin }}:
   cmd.run:
     - name: {{ jenkins_cli('install-plugin', plugin) }}
@@ -56,3 +89,16 @@ jenkins_disable_plugin_{{ plugin }}:
 restart_jenkins_after_plugins_installation:
   service.running:
     - name: jenkins
+
+remove_initial_password:
+  file.absent:
+    - name: {{ jenkins.home }}/secrets/initialAdminPassword
+    - require:
+      - service: restart_jenkins_after_plugins_installation
+
+finish_jenkins_config:
+  cmd.run:
+    - name: cp {{ jenkins.home }}/jenkins.install.UpgradeWizard.state {{ jenkins.home }}/jenkins.install.InstallUtil.lastExecVersion
+    - unless: test -f {{ jenkins.home }}/jenkins.install.InstallUtil.lastExecVersion
+    - require:
+      - service: restart_jenkins_after_plugins_installation
