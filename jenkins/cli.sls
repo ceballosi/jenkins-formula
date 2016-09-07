@@ -12,7 +12,20 @@
 # If there is an error, then an appropriate response can be implemented.
 check_if_jenkins_server_runs:
   cmd.run:
-    - name: "until {{ cli_macro.jenkins_listen() }}; do sleep 1; done"
+    - name: "sleep 15; until {{ cli_macro.jenkins_listen() }}; do sleep 1; done"
+
+# Enable slave agent port to allow jenkins-cli administration
+enable_slave_agent_port:
+  file.replace:
+    - name: {{ jenkins.home }}/config.xml
+    - pattern: "<slaveAgentPort>-1</slaveAgentPort>"
+    - repl: "<slaveAgentPort>0</slaveAgentPort>"
+    - show_changes: True
+    - backup: .bak
+    - require:
+      - cmd: check_if_jenkins_server_runs
+    - watch_in:
+      - service: jenkins
 
 # Trivial checks should always run.
 check_if_jenkins_serves_cli:
@@ -32,8 +45,9 @@ download_jenkins_cli_jar:
 # Login does not take up too much resources and should always run.
 login_to_jenkins_using_cli:
   cmd.run:
-    - name: "java -jar {{ jenkins.cli_path }} -s {{ jenkins.master_url }} login --username {{ jenkins.admin_user }} --password {{ jenkins.admin_pw }}"
+    - name: "java -jar {{ jenkins.cli_path }} -s {{ jenkins.master_url }} login --username {{ jenkins.jenkins_user }} --password {{ jenkins.jenkins_pw }} || java -jar {{ jenkins.cli_path }} -s {{ jenkins.master_url }} login --username admin --password-file {{ jenkins.home }}/secrets/initialAdminPassword"
     - require:
+      - file: enable_slave_agent_port
       - cmd: download_jenkins_cli_jar
 
 # Another trivial check.

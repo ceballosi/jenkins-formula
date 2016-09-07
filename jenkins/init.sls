@@ -1,11 +1,21 @@
 {% from "jenkins/map.jinja" import jenkins with context %}
 
 make_sure_global_dependencies_are_installed:
+  {% if grains['os_family'] == 'Debian' %}
+  pkgrepo.managed:
+    - ppa: openjdk-r/ppa
+  {% endif %}
   pkg.installed:
     - pkgs:
       - curl
       - git
-      - java-1.8.0-openjdk
+      {% if grains['os_family'] == 'RedHat' %}
+      - {{ jenkins.redhat_java_pkg }}
+      {% elif grains['os_family'] == 'Debian' %}
+      - {{ jenkins.debian_java_pkg }}
+    - require:
+      - pkgrepo: make_sure_global_dependencies_are_installed
+      {% endif %}
 
 # Always create the group first before creating the user within that group.
 create_jenkins_group:

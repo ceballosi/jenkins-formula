@@ -6,6 +6,9 @@ jenkins:
     group: www-data
     server_name: localhost
     master_url: http://localhost:8080
+    jenkins_user: jenkins
+    jenkins_pw: password
+    install_default_plugins: True # if you want to install all recommended (by Jenkins) plugins
     plugins:
       installed:
         - greenballs
