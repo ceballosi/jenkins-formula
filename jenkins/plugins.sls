@@ -45,9 +45,7 @@ enable_ldap_security:
                   <userSearchBase></userSearchBase>
                   <userSearch>uid={0}</userSearch>
                   <groupMembershipStrategy class="jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy">
-                    {% if jenkins.ldap_groups is defined and jenkins.ldap_groups is iterable %}
-                    <filter>(|{% for group in jenkins.ldap_groups %}({{ group }}){% endfor %})</filter>
-                    {% endif %}
+                    <filter></filter>
                   </groupMembershipStrategy>
                   <managerDN>{{ jenkins.ldap_user }}</managerDN>
                   <managerPasswordSecret>{{ jenkins.ldap_secret }}</managerPasswordSecret>
